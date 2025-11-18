@@ -4,7 +4,7 @@
 # Checks installation, versions, and health of essential development tools
 ################################################################################
 
-set -euo pipefail
+set -uo pipefail
 
 # Colors for output
 RED='\033[0;31m'
