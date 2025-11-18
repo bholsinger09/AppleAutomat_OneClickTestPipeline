@@ -7,12 +7,18 @@
 
 set -euo pipefail
 
-# Script directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Script directory (handle both sourcing and direct execution)
+if [ -n "${BASH_SOURCE[0]:-}" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+else
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+fi
 
 # Load environment variables if .env exists
 if [ -f "${SCRIPT_DIR}/../.env" ]; then
-    export $(grep -v '^#' "${SCRIPT_DIR}/../.env" | xargs)
+    set -a
+    source "${SCRIPT_DIR}/../.env"
+    set +a
 fi
 
 # Notification configuration

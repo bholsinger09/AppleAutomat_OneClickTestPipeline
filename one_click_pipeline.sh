@@ -19,7 +19,9 @@ source "${SCRIPTS_DIR}/notifications.sh"
 
 # Load environment variables if .env exists
 if [ -f "${SCRIPT_DIR}/.env" ]; then
-    export $(grep -v '^#' "${SCRIPT_DIR}/.env" | xargs)
+    set -a
+    source "${SCRIPT_DIR}/.env"
+    set +a
 fi
 
 # Default values
