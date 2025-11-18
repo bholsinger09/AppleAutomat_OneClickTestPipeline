@@ -1,0 +1,54 @@
+# Pipeline Configuration File
+# Copy this to pipeline_config.yaml and customize for your project
+
+project:
+  workspace: ""
+  scheme: "MyApp"
+  team_id: ""
+
+build:
+  configuration: "Debug"
+  clean_build: false
+  derived_data_path: "./DerivedData"
+  archive: false
+  export_path: "./Build"
+
+ios:
+  deployment_target: "15.0"
+  simulator_destination: "platform=iOS Simulator,name=iPhone 15,OS=latest"
+  provisioning_profile: ""
+
+macos:
+  deployment_target: "12.0"
+  destination: "platform=macOS"
+
+testing:
+  run_tests: true
+  test_plan: ""
+  code_coverage: true
+  parallel_testing: true
+  result_bundle_path: "./TestResults"
+
+code_signing:
+  automatic_signing: false
+  signing_identity: "Apple Development"
+  provisioning_profile_specifier: ""
+
+notifications:
+  enabled: false
+  slack_webhook: ""
+  email: ""
+  events:
+    - "success"
+    - "failure"
+
+cleanup:
+  clean_derived_data: false
+  clean_build_folder: false
+  log_retention_days: 30
+
+advanced:
+  use_xcpretty: true
+  verbose: false
+  build_timeout: 30
+  test_timeout: 20

@@ -1,0 +1,185 @@
+name: iOS CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '**.swift'
+      - '**.m'
+      - '**.h'
+      - '*.xcodeproj/**'
+      - '*.xcworkspace/**'
+      - '.github/workflows/ios_ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_15.0.app/Contents/Developer
+
+jobs:
+  build-and-test-ios:
+    name: Build and Test iOS
+    runs-on: macos-14
+    
+    strategy:
+      matrix:
+        destination: 
+          - 'platform=iOS Simulator,name=iPhone 15,OS=latest'
+          - 'platform=iOS Simulator,name=iPhone 15 Pro,OS=latest'
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Select Xcode Version
+      run: sudo xcode-select -s /Applications/Xcode_15.0.app/Contents/Developer
+    
+    - name: Display Xcode Version
+      run: xcodebuild -version
+    
+    - name: Display Swift Version
+      run: swift --version
+    
+    - name: Cache DerivedData
+      uses: actions/cache@v3
+      with:
+        path: DerivedData
+        key: ${{ runner.os }}-deriveddata-${{ hashFiles('**/*.xcodeproj/**') }}
+        restore-keys: |
+          ${{ runner.os }}-deriveddata-
+    
+    - name: Cache SPM
+      uses: actions/cache@v3
+      with:
+        path: .build
+        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+    
+    - name: Install xcpretty
+      run: gem install xcpretty
+    
+    - name: Setup Code Signing
+      if: github.event_name != 'pull_request'
+      env:
+        CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+        CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
+        KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+      run: |
+        # Create variables
+        CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
+        PROVISIONING_PROFILE_PATH=$RUNNER_TEMP/profile.mobileprovision
+        KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+        
+        # Decode certificate and provisioning profile
+        echo -n "$CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+        echo -n "$PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PROVISIONING_PROFILE_PATH
+        
+        # Create temporary keychain
+        security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+        security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+        
+        # Import certificate
+        security import $CERTIFICATE_PATH -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+        security list-keychain -d user -s $KEYCHAIN_PATH
+        
+        # Install provisioning profile
+        mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+        cp $PROVISIONING_PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+    
+    - name: Build iOS App
+      run: |
+        xcodebuild clean build \
+          -scheme "${SCHEME_NAME:-MyApp}" \
+          -destination "${{ matrix.destination }}" \
+          -configuration Debug \
+          -derivedDataPath DerivedData \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO | xcpretty --color
+    
+    - name: Run Unit Tests
+      run: |
+        xcodebuild test \
+          -scheme "${SCHEME_NAME:-MyApp}" \
+          -destination "${{ matrix.destination }}" \
+          -derivedDataPath DerivedData \
+          -resultBundlePath TestResults/TestResults.xcresult \
+          -enableCodeCoverage YES \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO | xcpretty --color
+    
+    - name: Generate Code Coverage Report
+      if: always()
+      run: |
+        xcrun xccov view --report --only-targets TestResults/TestResults.xcresult > coverage.txt
+        cat coverage.txt
+    
+    - name: Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-${{ matrix.destination }}
+        path: TestResults/
+        retention-days: 30
+    
+    - name: Upload Code Coverage
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: code-coverage-${{ matrix.destination }}
+        path: coverage.txt
+        retention-days: 30
+    
+    - name: Cleanup Keychain
+      if: always()
+      run: |
+        security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
+    
+    - name: Send Slack Notification
+      if: always() && github.event_name != 'pull_request'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      run: |
+        if [ -n "$SLACK_WEBHOOK_URL" ]; then
+          STATUS="${{ job.status }}"
+          COLOR="good"
+          if [ "$STATUS" != "success" ]; then
+            COLOR="danger"
+          fi
+          
+          curl -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"attachments\": [{
+                \"color\": \"$COLOR\",
+                \"title\": \"iOS CI - $STATUS\",
+                \"text\": \"Build and test completed with status: $STATUS\",
+                \"fields\": [
+                  {\"title\": \"Repository\", \"value\": \"${{ github.repository }}\", \"short\": true},
+                  {\"title\": \"Branch\", \"value\": \"${{ github.ref_name }}\", \"short\": true},
+                  {\"title\": \"Commit\", \"value\": \"${{ github.sha }}\", \"short\": true}
+                ]
+              }]
+            }"
+        fi
+
+  lint:
+    name: SwiftLint
+    runs-on: macos-14
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Install SwiftLint
+      run: brew install swiftlint
+    
+    - name: Run SwiftLint
+      run: swiftlint lint --reporter github-actions-logging

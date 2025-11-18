@@ -1,0 +1,121 @@
+# Pipeline Configuration File
+# Configure your iOS/macOS build and test pipeline
+
+# Project Configuration
+project:
+  # Path to your .xcworkspace file (use this if you have CocoaPods or SPM)
+  workspace: "${PROJECT_PATH}/YourApp.xcworkspace"
+  
+  # Path to your .xcodeproj file (use this if you don't have a workspace)
+  # project: "${PROJECT_PATH}/YourApp.xcodeproj"
+  
+  # Xcode scheme name
+  scheme: "${SCHEME_NAME}"
+  
+  # Team ID for code signing
+  team_id: "${DEVELOPMENT_TEAM}"
+
+# Build Configuration
+build:
+  # Build configuration (Debug, Release, etc.)
+  configuration: "Debug"
+  
+  # Clean build before building
+  clean_build: false
+  
+  # Path to derived data
+  derived_data_path: "./DerivedData"
+  
+  # Create archive (for distribution)
+  archive: false
+  
+  # Export path for archives
+  export_path: "./Build"
+
+# iOS Specific Settings
+ios:
+  # iOS deployment target
+  deployment_target: "15.0"
+  
+  # Simulator destination
+  simulator_destination: "platform=iOS Simulator,name=iPhone 15,OS=latest"
+  
+  # Provisioning profile name
+  provisioning_profile: "${PROVISIONING_PROFILE}"
+
+# macOS Specific Settings
+macos:
+  # macOS deployment target
+  deployment_target: "12.0"
+  
+  # Build destination
+  destination: "platform=macOS"
+
+# Testing Configuration
+testing:
+  # Enable or disable test execution
+  run_tests: true
+  
+  # Test plan name (optional)
+  test_plan: ""
+  
+  # Enable code coverage
+  code_coverage: true
+  
+  # Enable parallel testing
+  parallel_testing: true
+  
+  # Test result bundle path
+  result_bundle_path: "./TestResults"
+
+# Code Signing (iOS/macOS)
+code_signing:
+  # Automatically manage signing
+  automatic_signing: false
+  
+  # Code signing identity
+  signing_identity: "Apple Development"
+  
+  # Provisioning profile specifier
+  provisioning_profile_specifier: "${PROVISIONING_PROFILE}"
+
+# Notifications
+notifications:
+  # Enable notifications
+  enabled: true
+  
+  # Slack webhook URL
+  slack_webhook: "${SLACK_WEBHOOK_URL}"
+  
+  # Email for notifications
+  email: "${NOTIFICATION_EMAIL}"
+  
+  # Notification events (start, success, failure)
+  events:
+    - "success"
+    - "failure"
+
+# Cleanup Settings
+cleanup:
+  # Clean derived data after build
+  clean_derived_data: false
+  
+  # Clean build folder
+  clean_build_folder: false
+  
+  # Maximum age of log files (in days)
+  log_retention_days: 30
+
+# Advanced Settings
+advanced:
+  # Use xcpretty for formatted output
+  use_xcpretty: true
+  
+  # Verbose output
+  verbose: false
+  
+  # Timeout for build (in minutes)
+  build_timeout: 30
+  
+  # Timeout for tests (in minutes)
+  test_timeout: 20

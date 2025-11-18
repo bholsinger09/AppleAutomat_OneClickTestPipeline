@@ -1,0 +1,192 @@
+name: macOS CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '**.swift'
+      - '**.m'
+      - '**.h'
+      - '*.xcodeproj/**'
+      - '*.xcworkspace/**'
+      - '.github/workflows/macos_ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_15.0.app/Contents/Developer
+
+jobs:
+  build-and-test-macos:
+    name: Build and Test macOS
+    runs-on: macos-14
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Select Xcode Version
+      run: sudo xcode-select -s /Applications/Xcode_15.0.app/Contents/Developer
+    
+    - name: Display Xcode Version
+      run: xcodebuild -version
+    
+    - name: Display Swift Version
+      run: swift --version
+    
+    - name: Cache DerivedData
+      uses: actions/cache@v3
+      with:
+        path: DerivedData
+        key: ${{ runner.os }}-deriveddata-macos-${{ hashFiles('**/*.xcodeproj/**') }}
+        restore-keys: |
+          ${{ runner.os }}-deriveddata-macos-
+    
+    - name: Cache SPM
+      uses: actions/cache@v3
+      with:
+        path: .build
+        key: ${{ runner.os }}-spm-macos-${{ hashFiles('**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-macos-
+    
+    - name: Install xcpretty
+      run: gem install xcpretty
+    
+    - name: Setup Code Signing
+      if: github.event_name != 'pull_request'
+      env:
+        CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+        CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+      run: |
+        # Create variables
+        CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
+        KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+        
+        # Decode certificate
+        echo -n "$CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+        
+        # Create temporary keychain
+        security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+        security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+        
+        # Import certificate
+        security import $CERTIFICATE_PATH -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+        security list-keychain -d user -s $KEYCHAIN_PATH
+    
+    - name: Build macOS App
+      run: |
+        xcodebuild clean build \
+          -scheme "${SCHEME_NAME:-MyApp}" \
+          -destination "platform=macOS" \
+          -configuration Debug \
+          -derivedDataPath DerivedData \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO | xcpretty --color
+    
+    - name: Run Unit Tests
+      run: |
+        xcodebuild test \
+          -scheme "${SCHEME_NAME:-MyApp}" \
+          -destination "platform=macOS" \
+          -derivedDataPath DerivedData \
+          -resultBundlePath TestResults/TestResults.xcresult \
+          -enableCodeCoverage YES \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO | xcpretty --color
+    
+    - name: Generate Code Coverage Report
+      if: always()
+      run: |
+        xcrun xccov view --report --only-targets TestResults/TestResults.xcresult > coverage.txt
+        cat coverage.txt
+    
+    - name: Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-test-results
+        path: TestResults/
+        retention-days: 30
+    
+    - name: Upload Code Coverage
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-code-coverage
+        path: coverage.txt
+        retention-days: 30
+    
+    - name: Archive macOS App
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        xcodebuild archive \
+          -scheme "${SCHEME_NAME:-MyApp}" \
+          -destination "platform=macOS" \
+          -configuration Release \
+          -archivePath Build/MyApp.xcarchive \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO | xcpretty --color
+    
+    - name: Upload Archive
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-archive
+        path: Build/
+        retention-days: 30
+    
+    - name: Cleanup Keychain
+      if: always()
+      run: |
+        security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
+    
+    - name: Send Slack Notification
+      if: always() && github.event_name != 'pull_request'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      run: |
+        if [ -n "$SLACK_WEBHOOK_URL" ]; then
+          STATUS="${{ job.status }}"
+          COLOR="good"
+          if [ "$STATUS" != "success" ]; then
+            COLOR="danger"
+          fi
+          
+          curl -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"attachments\": [{
+                \"color\": \"$COLOR\",
+                \"title\": \"macOS CI - $STATUS\",
+                \"text\": \"Build and test completed with status: $STATUS\",
+                \"fields\": [
+                  {\"title\": \"Repository\", \"value\": \"${{ github.repository }}\", \"short\": true},
+                  {\"title\": \"Branch\", \"value\": \"${{ github.ref_name }}\", \"short\": true},
+                  {\"title\": \"Commit\", \"value\": \"${{ github.sha }}\", \"short\": true}
+                ]
+              }]
+            }"
+        fi
+
+  lint:
+    name: SwiftLint
+    runs-on: macos-14
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Install SwiftLint
+      run: brew install swiftlint
+    
+    - name: Run SwiftLint
+      run: swiftlint lint --reporter github-actions-logging

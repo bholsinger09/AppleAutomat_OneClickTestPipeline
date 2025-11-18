@@ -1,0 +1,248 @@
+name: Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: true
+      platform:
+        description: 'Platform to release'
+        required: true
+        type: choice
+        options:
+          - ios
+          - macos
+          - both
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_15.0.app/Contents/Developer
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: macos-14
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Get Version
+      id: get_version
+      run: |
+        if [ "${{ github.event_name }}" = "push" ]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+        else
+          VERSION="${{ github.event.inputs.version }}"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+    
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.get_version.outputs.version }}
+        release_name: Release v${{ steps.get_version.outputs.version }}
+        draft: false
+        prerelease: false
+
+  build-ios-release:
+    name: Build iOS Release
+    needs: create-release
+    if: github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'both' || github.event_name == 'push'
+    runs-on: macos-14
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Select Xcode Version
+      run: sudo xcode-select -s /Applications/Xcode_15.0.app/Contents/Developer
+    
+    - name: Install xcpretty
+      run: gem install xcpretty
+    
+    - name: Setup Code Signing
+      env:
+        CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+        CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
+        KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+      run: |
+        CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
+        PROVISIONING_PROFILE_PATH=$RUNNER_TEMP/profile.mobileprovision
+        KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+        
+        echo -n "$CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+        echo -n "$PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PROVISIONING_PROFILE_PATH
+        
+        security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+        security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+        security import $CERTIFICATE_PATH -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+        security list-keychain -d user -s $KEYCHAIN_PATH
+        
+        mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+        cp $PROVISIONING_PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+    
+    - name: Build and Archive iOS
+      run: |
+        xcodebuild archive \
+          -scheme "${SCHEME_NAME:-MyApp}" \
+          -configuration Release \
+          -archivePath Build/MyApp.xcarchive \
+          -destination "generic/platform=iOS" | xcpretty --color
+    
+    - name: Export IPA
+      run: |
+        # Create export options plist
+        cat > ExportOptions.plist << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>${{ secrets.TEAM_ID }}</string>
+        </dict>
+        </plist>
+        EOF
+        
+        xcodebuild -exportArchive \
+          -archivePath Build/MyApp.xcarchive \
+          -exportPath Build/Export \
+          -exportOptionsPlist ExportOptions.plist | xcpretty --color
+    
+    - name: Create ZIP Archive
+      run: |
+        cd Build/Export
+        zip -r ../../MyApp-iOS-v${{ needs.create-release.outputs.version }}.zip .
+    
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./MyApp-iOS-v${{ needs.create-release.outputs.version }}.zip
+        asset_name: MyApp-iOS-v${{ needs.create-release.outputs.version }}.zip
+        asset_content_type: application/zip
+    
+    - name: Cleanup
+      if: always()
+      run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
+
+  build-macos-release:
+    name: Build macOS Release
+    needs: create-release
+    if: github.event.inputs.platform == 'macos' || github.event.inputs.platform == 'both' || github.event_name == 'push'
+    runs-on: macos-14
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Select Xcode Version
+      run: sudo xcode-select -s /Applications/Xcode_15.0.app/Contents/Developer
+    
+    - name: Install xcpretty
+      run: gem install xcpretty
+    
+    - name: Setup Code Signing
+      env:
+        CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+        CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+      run: |
+        CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
+        KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+        
+        echo -n "$CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+        
+        security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+        security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+        security import $CERTIFICATE_PATH -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+        security list-keychain -d user -s $KEYCHAIN_PATH
+    
+    - name: Build and Archive macOS
+      run: |
+        xcodebuild archive \
+          -scheme "${SCHEME_NAME:-MyApp}" \
+          -configuration Release \
+          -archivePath Build/MyApp.xcarchive \
+          -destination "generic/platform=macOS" | xcpretty --color
+    
+    - name: Export App
+      run: |
+        cat > ExportOptions.plist << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>method</key>
+            <string>mac-application</string>
+            <key>teamID</key>
+            <string>${{ secrets.TEAM_ID }}</string>
+        </dict>
+        </plist>
+        EOF
+        
+        xcodebuild -exportArchive \
+          -archivePath Build/MyApp.xcarchive \
+          -exportPath Build/Export \
+          -exportOptionsPlist ExportOptions.plist | xcpretty --color
+    
+    - name: Create DMG
+      run: |
+        # This is a placeholder - you'd use create-dmg or similar tool
+        cd Build/Export
+        zip -r ../../MyApp-macOS-v${{ needs.create-release.outputs.version }}.zip .
+    
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./MyApp-macOS-v${{ needs.create-release.outputs.version }}.zip
+        asset_name: MyApp-macOS-v${{ needs.create-release.outputs.version }}.zip
+        asset_content_type: application/zip
+    
+    - name: Cleanup
+      if: always()
+      run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
+
+  notify:
+    name: Send Notifications
+    needs: [create-release, build-ios-release, build-macos-release]
+    if: always()
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Send Slack Notification
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      run: |
+        if [ -n "$SLACK_WEBHOOK_URL" ]; then
+          curl -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"text\": \"🎉 New release v${{ needs.create-release.outputs.version }} has been published!\",
+              \"attachments\": [{
+                \"color\": \"good\",
+                \"title\": \"Release v${{ needs.create-release.outputs.version }}\",
+                \"title_link\": \"https://github.com/${{ github.repository }}/releases/tag/v${{ needs.create-release.outputs.version }}\"
+              }]
+            }"
+        fi
