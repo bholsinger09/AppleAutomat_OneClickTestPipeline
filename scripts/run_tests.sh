@@ -85,7 +85,7 @@ fi
 if [ -z "$DESTINATION" ]; then
     case "$PLATFORM" in
         ios)
-            DESTINATION="platform=iOS Simulator,name=iPhone 15,OS=latest"
+            DESTINATION="platform=iOS Simulator,name=iPhone 16"
             ;;
         macos)
             DESTINATION="platform=macOS"

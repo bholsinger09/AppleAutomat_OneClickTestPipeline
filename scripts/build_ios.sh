@@ -16,7 +16,7 @@ SCHEME=""
 WORKSPACE=""
 PROJECT=""
 CONFIGURATION="Debug"
-DESTINATION="platform=iOS Simulator,name=iPhone 15,OS=latest"
+DESTINATION="platform=iOS Simulator,name=iPhone 16"
 DERIVED_DATA_PATH="./DerivedData"
 VERBOSE=false
 ARCHIVE=false
