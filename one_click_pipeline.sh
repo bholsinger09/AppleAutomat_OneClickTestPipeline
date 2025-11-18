@@ -232,6 +232,23 @@ run_build() {
     # Prepare build arguments
     local BUILD_ARGS=("--scheme" "$SCHEME" "--configuration" "$CONFIGURATION")
     
+    # Auto-detect project/workspace if PROJECT_PATH is set
+    if [ -z "$WORKSPACE" ] && [ -z "$PROJECT" ] && [ -n "${PROJECT_PATH:-}" ]; then
+        if [ -d "$PROJECT_PATH" ]; then
+            # Look for workspace first, then project
+            local FOUND_WORKSPACE=$(find "$PROJECT_PATH" -maxdepth 1 -name "*.xcworkspace" | head -1)
+            local FOUND_PROJECT=$(find "$PROJECT_PATH" -maxdepth 1 -name "*.xcodeproj" | head -1)
+            
+            if [ -n "$FOUND_WORKSPACE" ]; then
+                WORKSPACE="$FOUND_WORKSPACE"
+                log_info "Auto-detected workspace from PROJECT_PATH: $WORKSPACE"
+            elif [ -n "$FOUND_PROJECT" ]; then
+                PROJECT="$FOUND_PROJECT"
+                log_info "Auto-detected project from PROJECT_PATH: $PROJECT"
+            fi
+        fi
+    fi
+    
     if [ -n "$WORKSPACE" ]; then
         BUILD_ARGS+=("--workspace" "$WORKSPACE")
     elif [ -n "$PROJECT" ]; then
@@ -260,6 +277,20 @@ run_tests() {
     
     # Prepare test arguments
     local TEST_ARGS=("--platform" "$PLATFORM" "--scheme" "$SCHEME")
+    
+    # Auto-detect project/workspace if PROJECT_PATH is set (same as build)
+    if [ -z "$WORKSPACE" ] && [ -z "$PROJECT" ] && [ -n "${PROJECT_PATH:-}" ]; then
+        if [ -d "$PROJECT_PATH" ]; then
+            local FOUND_WORKSPACE=$(find "$PROJECT_PATH" -maxdepth 1 -name "*.xcworkspace" | head -1)
+            local FOUND_PROJECT=$(find "$PROJECT_PATH" -maxdepth 1 -name "*.xcodeproj" | head -1)
+            
+            if [ -n "$FOUND_WORKSPACE" ]; then
+                WORKSPACE="$FOUND_WORKSPACE"
+            elif [ -n "$FOUND_PROJECT" ]; then
+                PROJECT="$FOUND_PROJECT"
+            fi
+        fi
+    fi
     
     if [ -n "$WORKSPACE" ]; then
         TEST_ARGS+=("--workspace" "$WORKSPACE")

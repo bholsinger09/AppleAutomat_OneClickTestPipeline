@@ -73,14 +73,14 @@ fi
 # Determine project or workspace
 PROJECT_ARGS=()
 if [ -n "$WORKSPACE" ]; then
-    if [ ! -f "$WORKSPACE" ]; then
+    if [ ! -d "$WORKSPACE" ]; then
         log_error "Workspace not found: $WORKSPACE"
         exit 1
     fi
     PROJECT_ARGS+=("-workspace" "$WORKSPACE")
     log_info "Using workspace: $WORKSPACE"
 elif [ -n "$PROJECT" ]; then
-    if [ ! -f "$PROJECT" ]; then
+    if [ ! -d "$PROJECT" ]; then
         log_error "Project not found: $PROJECT"
         exit 1
     fi
