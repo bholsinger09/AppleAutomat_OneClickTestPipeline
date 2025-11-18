@@ -28,6 +28,10 @@ INSTALLED=0
 MISSING=0
 OUTDATED=0
 
+# Arrays to track missing tools
+declare -a MISSING_TOOLS=()
+declare -a MISSING_CASKS=()
+
 echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BOLD}${CYAN}║          DevOps Tools Health Check & Diagnostic              ║${NC}"
 echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════════╝${NC}"
@@ -66,6 +70,9 @@ check_tool() {
     else
         echo -e "${RED}${CROSS} Not installed${NC} ${YELLOW}(Install: brew install $brew_name)${NC}"
         ((MISSING++))
+        if [ "$brew_name" != "N/A" ]; then
+            MISSING_TOOLS+=("$brew_name")
+        fi
     fi
 }
 
@@ -91,6 +98,9 @@ check_app() {
     else
         if [ -n "$brew_name" ]; then
             echo -e "${RED}${CROSS} Not installed${NC} ${YELLOW}(Install: brew install --cask $brew_name)${NC}"
+            if [ "$brew_name" != "N/A" ]; then
+                MISSING_CASKS+=("$brew_name")
+            fi
         else
             echo -e "${RED}${CROSS} Not installed${NC}"
         fi
@@ -153,9 +163,74 @@ echo -e "${BOLD}Summary:${NC}"
 echo -e "  ${GREEN}${CHECK} Installed: $INSTALLED${NC}"
 echo -e "  ${RED}${CROSS} Missing:   $MISSING${NC}"
 
+# Offer to install missing tools
 if [ $MISSING -gt 0 ]; then
     echo ""
-    echo -e "${YELLOW}${WARNING} Run 'brew bundle' or install missing tools individually${NC}"
+    echo -e "${YELLOW}${WARNING} Found $MISSING missing tools${NC}"
+    
+    # Show what will be installed
+    if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
+        echo -e "${BOLD}Command-line tools to install:${NC}"
+        for tool in "${MISSING_TOOLS[@]}"; do
+            echo -e "  ${CYAN}• $tool${NC}"
+        done
+    fi
+    
+    if [ ${#MISSING_CASKS[@]} -gt 0 ]; then
+        echo -e "${BOLD}GUI applications to install:${NC}"
+        for cask in "${MISSING_CASKS[@]}"; do
+            echo -e "  ${CYAN}• $cask${NC}"
+        done
+    fi
+    
+    echo ""
+    read -p "Would you like to install missing tools now? (y/n) " -n 1 -r
+    echo
+    
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo ""
+        echo -e "${BOLD}${GREEN}Starting installation...${NC}"
+        
+        # Install command-line tools
+        if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
+            echo ""
+            echo -e "${BOLD}${MAGENTA}Installing command-line tools...${NC}"
+            for tool in "${MISSING_TOOLS[@]}"; do
+                echo -e "${CYAN}Installing $tool...${NC}"
+                if brew install "$tool"; then
+                    echo -e "${GREEN}${CHECK} $tool installed successfully${NC}"
+                else
+                    echo -e "${RED}${CROSS} Failed to install $tool${NC}"
+                fi
+            done
+        fi
+        
+        # Install GUI applications
+        if [ ${#MISSING_CASKS[@]} -gt 0 ]; then
+            echo ""
+            echo -e "${BOLD}${MAGENTA}Installing GUI applications...${NC}"
+            for cask in "${MISSING_CASKS[@]}"; do
+                echo -e "${CYAN}Installing $cask...${NC}"
+                if brew install --cask "$cask"; then
+                    echo -e "${GREEN}${CHECK} $cask installed successfully${NC}"
+                else
+                    echo -e "${RED}${CROSS} Failed to install $cask${NC}"
+                fi
+            done
+        fi
+        
+        echo ""
+        echo -e "${BOLD}${GREEN}Installation complete!${NC}"
+        echo -e "${YELLOW}${INFO} Run this script again to verify all installations${NC}"
+    else
+        echo -e "${YELLOW}Skipping installation. You can install manually with:${NC}"
+        if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
+            echo -e "  ${CYAN}brew install ${MISSING_TOOLS[*]}${NC}"
+        fi
+        if [ ${#MISSING_CASKS[@]} -gt 0 ]; then
+            echo -e "  ${CYAN}brew install --cask ${MISSING_CASKS[*]}${NC}"
+        fi
+    fi
 fi
 
 echo -e "${BOLD}${CYAN}═══════════════════════════════════════════════════════════════${NC}"
