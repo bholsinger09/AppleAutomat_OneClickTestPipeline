@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:AppleDevOpsAutomate}",
+            "name": "Debug SwiftOfflineNotesDemo",
+            "target": "SwiftOfflineNotesDemo",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug SwiftOfflineNotesDemo"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:AppleDevOpsAutomate}",
+            "name": "Release SwiftOfflineNotesDemo",
+            "target": "SwiftOfflineNotesDemo",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release SwiftOfflineNotesDemo"
+        }
+    ]
+}
