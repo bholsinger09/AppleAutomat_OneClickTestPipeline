@@ -147,7 +147,6 @@ check_app "Raycast" "com.raycast.macos" "raycast"
 check_app "Stats" "eu.exelban.Stats" "stats"
 check_app "TablePlus" "com.tinyapp.TablePlus" "tableplus"
 check_app "Charles Proxy" "com.xk72.Charles" "charles"
-check_app "SF Symbols" "com.apple.SFSymbols" "N/A"
 
 echo ""
 echo -e "${BOLD}${MAGENTA}═══ DevOps & CI/CD Tools ═══${NC}"
@@ -230,6 +229,63 @@ if [ $MISSING -gt 0 ]; then
         if [ ${#MISSING_CASKS[@]} -gt 0 ]; then
             echo -e "  ${CYAN}brew install --cask ${MISSING_CASKS[*]}${NC}"
         fi
+    fi
+fi
+
+echo -e "${BOLD}${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+
+# Verify critical apps are running
+echo ""
+echo -e "${BOLD}${MAGENTA}Verifying critical applications...${NC}"
+
+REQUIRED_APPS=(
+    "com.apple.dt.Xcode:Xcode:/Applications/Xcode.app"
+    "com.microsoft.VSCode:Visual Studio Code:/Applications/Visual Studio Code.app"
+    "com.googlecode.iterm2:iTerm2:/Applications/iTerm.app"
+    "eu.exelban.Stats:Stats:/Applications/Stats.app"
+)
+
+ALL_RUNNING=true
+APPS_TO_START=()
+
+for app_info in "${REQUIRED_APPS[@]}"; do
+    IFS=':' read -r bundle_id app_name app_path <<< "$app_info"
+    printf "%-25s " "$app_name"
+    
+    if pgrep -f "$bundle_id" >/dev/null 2>&1; then
+        echo -e "${GREEN}${CHECK} Running${NC}"
+    else
+        echo -e "${RED}${CROSS} Not running${NC}"
+        ALL_RUNNING=false
+        APPS_TO_START+=("$app_name:$app_path")
+    fi
+done
+
+echo ""
+if [ "$ALL_RUNNING" = true ]; then
+    echo -e "${BOLD}${GREEN}✓ CHECK COMPLETE - All critical apps are running${NC}"
+else
+    echo -e "${BOLD}${YELLOW}⚠ Some critical apps are not running${NC}"
+    
+    if [ ${#APPS_TO_START[@]} -gt 0 ]; then
+        echo ""
+        echo -e "${BOLD}Starting missing applications...${NC}"
+        
+        for app_info in "${APPS_TO_START[@]}"; do
+            IFS=':' read -r app_name app_path <<< "$app_info"
+            
+            if [ -d "$app_path" ]; then
+                echo -e "${CYAN}Launching $app_name...${NC}"
+                open "$app_path" 2>/dev/null && \
+                    echo -e "${GREEN}${CHECK} $app_name started${NC}" || \
+                    echo -e "${RED}${CROSS} Failed to start $app_name${NC}"
+            else
+                echo -e "${YELLOW}${WARNING} $app_name not found at $app_path${NC}"
+            fi
+        done
+        
+        echo ""
+        echo -e "${BOLD}${GREEN}✓ CHECK COMPLETE - Applications started${NC}"
     fi
 fi
 
