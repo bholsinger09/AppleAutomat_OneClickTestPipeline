@@ -43,7 +43,9 @@ echo -e "  ${BOLD}3.${NC} ${YELLOW}System Cleanup${NC}        - Clean caches & f
 echo -e "  ${BOLD}4.${NC} ${MAGENTA}Xcode Quick Actions${NC}   - Batch build, test, clean Xcode projects"
 echo -e "  ${BOLD}5.${NC} ${CYAN}Git Batch Ops${NC}         - Perform git operations on multiple repos"
 echo -e "  ${BOLD}6.${NC} ${BLUE}Performance Monitor${NC}   - Track build performance & generate reports"
-echo -e "  ${BOLD}7.${NC} ${GREEN}Run Pipeline${NC}          - Execute AppleAutomat build pipeline"
+echo -e "  ${BOLD}7.${NC} ${MAGENTA}Mac System Monitor${NC}    - Monitor CPU, memory, disk, and network"
+echo -e "  ${BOLD}8.${NC} ${CYAN}Apple Intelligence${NC}    - Test Apple's built-in AI capabilities"
+echo -e "  ${BOLD}9.${NC} ${GREEN}Run Pipeline${NC}          - Execute AppleAutomat build pipeline"
 echo ""
 echo -e "  ${BOLD}0.${NC} Exit"
 echo ""
@@ -94,10 +96,22 @@ case $choice in
         ;;
     7)
         echo ""
+        echo -e "${MAGENTA}Running Mac System Monitor...${NC}"
+        echo ""
+        "$SCRIPT_DIR/mac-system-monitor.sh"
+        ;;
+    8)
+        echo ""
+        echo -e "${CYAN}Running Apple Intelligence Tester...${NC}"
+        echo ""
+        "$SCRIPT_DIR/apple-intelligence-tester.sh"
+        ;;
+    9)
+        echo ""
         echo -e "${GREEN}Running AppleAutomat Pipeline...${NC}"
         echo ""
         cd "$SCRIPT_DIR/.."
-        ./one_click_pipeline.sh
+        ./one_click_pipeline.sh"
         ;;
     0)
         echo -e "${GREEN}Goodbye!${NC}"

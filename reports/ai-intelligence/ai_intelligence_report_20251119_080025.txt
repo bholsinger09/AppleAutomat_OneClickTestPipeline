@@ -1,0 +1,78 @@
+╔═══════════════════════════════════════════════════════════════╗
+║         Apple Intelligence Capabilities Report               ║
+║         Generated: 2025-11-19 08:00:25                        ║
+╚═══════════════════════════════════════════════════════════════╝
+
+[1m[0;35mSystem Requirements Check[0m
+[0;36mmacOS Version:[0m 26.0.1
+[0;32m✓ macOS 15+ detected - Apple Intelligence supported[0m
+
+[1m[0;35m🔍 Spotlight Intelligence[0m
+[0;32m✓ Spotlight process running[0m
+[0;32m✓ Spotlight indexing enabled[0m
+
+[1mTesting Natural Language Search:[0m
+[0;36m  Query: "documents from last week"[0m
+  [0;32mResults: 85 items[0m
+[0;36m  Query: "photos from yesterday"[0m
+  [0;32mResults: 3 items[0m
+[0;36m  Query: "emails about meetings"[0m
+  [0;32mResults: 8 items[0m
+
+[1m[0;35m🤖 Siri & Voice Recognition[0m
+[0;32m✓ Siri enabled[0m
+[0;36mDictation:[0m 
+
+[1m[0;35m🧠 Core ML & On-Device Intelligence[0m
+
+[1mVision Framework Capabilities:[0m
+Available Vision requests:
+- Text Recognition: ✓
+- Face Detection: ✓
+- Barcode Detection: ✓
+- Image Classification: ✓
+- Object Tracking: ✓
+- Saliency Analysis: ✓
+
+[1m[0;35m✨ Text Intelligence[0m
+[1mChecking Text Prediction Features:[0m
+[0;36mAuto-correct:[0m [1;33mDisabled[0m
+[0;36mText Replacements:[0m 1 configured
+[0;36mPredictive Text:[0m [1;33mDisabled[0m
+
+[1m[0;35m📸 Photos Intelligence[0m
+[0;32m✓ Photos library found[0m
+
+[1mAI Features in Photos:[0m
+  [0;32m✓ Face Recognition[0m
+  [0;32m✓ Scene Detection[0m
+  [0;32m✓ Object Recognition[0m
+  [0;32m✓ Memory Creation[0m
+  [0;32m✓ Live Text in Photos[0m
+
+[1m[0;35m👁 Visual Intelligence[0m
+
+[1m[0;35m🌍 Translation Intelligence[0m
+[1;33m⚠ Translation app not found[0m
+
+[1m[0;35m🎯 Focus Mode Intelligence[0m
+[0;32m✓ Focus modes configured[0m
+[0;36mActive focus modes: 0[0m
+
+[1mFocus Features:[0m
+  [0;32m✓ App/Contact filtering[0m
+  [0;32m✓ Notification intelligence[0m
+  [0;32m✓ Automatic activation[0m
+
+[1m[0;35m⌨️ Keyboard Intelligence[0m
+[1mSmart Features:[0m
+  [0;36mAuto-Capitalization:[0m [0;32mEnabled[0m
+  [0;36mAuto-Period:[0m [0;32mEnabled[0m
+  [0;36mSmart Quotes:[0m [1;33mDisabled[0m
+  [0;36mSmart Dashes:[0m [1;33mDisabled[0m
+
+[1m[0;35m⚡ AI Performance Benchmark[0m
+[0;36mTesting on-device ML performance...[0m
+
+[1m1. Spotlight Search Speed[0m
+  [0;32mResponse time: 9662.304ms[0m

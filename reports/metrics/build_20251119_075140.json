@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-11-19 07:51:40",
+  "project": "TestObjectiveC",
+  "scheme": "TestObjectiveC",
+  "configuration": "Debug",
+  "duration_seconds": 8,
+  "build_status": "success",
+  "cpu_average": 0,
+  "cpu_peak": 0.0,
+  "memory_average": 0,
+  "memory_peak": 0.0,
+  "log_file": "/Users/benh/Documents/AppleDevOpsAutomate/devops-tools/../reports/logs/build_20251119_075140.log",
+  "monitor_log": "/Users/benh/Documents/AppleDevOpsAutomate/devops-tools/../reports/logs/monitor_20251119_075140.log"
+}

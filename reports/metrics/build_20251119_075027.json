@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-11-19 07:50:27",
+  "project": "TestAutomativePipeline",
+  "scheme": "TestAutomativePipeline",
+  "configuration": "Debug",
+  "duration_seconds": 2,
+  "build_status": "failed",
+  "cpu_average": Monitoring PID: 35060 (sampling every 2s),
+  "cpu_peak": 0,
+  "memory_average": 0,
+  "memory_peak": 0,
+  "log_file": "/Users/benh/Documents/AppleDevOpsAutomate/devops-tools/../reports/logs/build_20251119_075027.log",
+  "monitor_log": "/Users/benh/Documents/AppleDevOpsAutomate/devops-tools/../reports/logs/monitor_20251119_075027.log"
+}
