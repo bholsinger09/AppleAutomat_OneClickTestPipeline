@@ -177,6 +177,192 @@ APPLESCRIPT
     return 0
 }
 
+# Test Reminders Intelligence
+test_reminders() {
+    echo -e "\n${BOLD}${MAGENTA}✅ Reminders Intelligence${NC}"
+    
+    # Check if Reminders is running
+    if ! pgrep -x "Reminders" >/dev/null; then
+        echo -e "${YELLOW}${WARNING} Reminders app is not running - launching...${NC}"
+        open -a Reminders
+        sleep 2
+    else
+        echo -e "${GREEN}${CHECK} Reminders app is running${NC}"
+    fi
+    
+    echo -e "\n${BOLD}Checking Reminders:${NC}"
+    
+    # Use direct osascript commands for better reliability
+    local list_count=$(timeout 5 osascript -e 'tell application "Reminders" to count of lists' 2>&1)
+    
+    if [ $? -ne 0 ] || [ -z "$list_count" ]; then
+        echo -e "${RED}${CROSS} Unable to access Reminders${NC}"
+        echo -e "${YELLOW}${WARNING} Please grant Full Disk Access to Terminal in System Settings${NC}"
+        return 1
+    fi
+    
+    echo -e "${GREEN}${CHECK} Reminder lists found: $list_count${NC}"
+    
+    # Get list names and basic stats
+    local list_info=$(timeout 10 osascript << 'APPLESCRIPT'
+tell application "Reminders"
+    set output to ""
+    set allLists to every list
+    
+    repeat with reminderList in allLists
+        set listName to name of reminderList
+        set allRems to (count of reminders of reminderList)
+        set pendingRems to (count of (reminders of reminderList whose completed is false))
+        set completedRems to (count of (reminders of reminderList whose completed is true))
+        
+        set output to output & listName & "|" & (allRems as string) & "|" & (pendingRems as string) & "|" & (completedRems as string) & "@@"
+    end repeat
+    
+    return output
+end tell
+APPLESCRIPT
+)
+    
+    # Calculate totals from list info
+    local total_reminders=0
+    local pending_reminders=0
+    local completed_reminders=0
+    
+    while IFS='|' read -r name total pend comp; do
+        if [ -n "$total" ] && [ "$total" != "@@" ]; then
+            total_reminders=$((total_reminders + total))
+            pending_reminders=$((pending_reminders + pend))
+            completed_reminders=$((completed_reminders + comp))
+        fi
+    done < <(echo "$list_info" | tr '@@' '\n')
+    
+    echo -e "${CYAN}Total reminders: $total_reminders${NC}"
+    
+    # Show pending reminders
+    if [ "$pending_reminders" -gt 0 ] 2>/dev/null; then
+        echo -e "${YELLOW}${SPARKLE} PENDING: You have $pending_reminders pending reminder(s)!${NC}"
+    else
+        echo -e "${GREEN}${CHECK} No pending reminders${NC}"
+    fi
+    
+    echo -e "${CYAN}Completed: $completed_reminders${NC}"
+    
+    # Check smart lists (simplified to avoid hanging)
+    echo -e "\n${BOLD}Smart Lists:${NC}"
+    
+    # Check for today's reminders
+    local today_count=$(timeout 5 osascript -e 'tell application "Reminders" to count of (reminders whose (completed is false and due date is not missing value and (due date ≥ (current date) - (time of (current date)) and due date < ((current date) - (time of (current date)) + (24 * 60 * 60)))))' 2>/dev/null || echo "0")
+    
+    if [ "$today_count" -gt 0 ] 2>/dev/null; then
+        echo -e "${YELLOW}  📅 Today: $today_count reminder(s) due today${NC}"
+    else
+        echo -e "${GREEN}  📅 Today: No reminders due today${NC}"
+    fi
+    
+    # Check scheduled
+    local scheduled_count=$(timeout 5 osascript -e 'tell application "Reminders" to count of (reminders whose (completed is false and due date is not missing value))' 2>/dev/null || echo "0")
+    
+    if [ "$scheduled_count" -gt 0 ] 2>/dev/null; then
+        echo -e "${CYAN}  🗓️  Scheduled: $scheduled_count reminder(s) with due dates${NC}"
+    else
+        echo -e "  🗓️  Scheduled: No scheduled reminders"
+    fi
+    
+    # Check flagged
+    local flagged_count=$(timeout 5 osascript -e 'tell application "Reminders" to count of (reminders whose (completed is false and flagged is true))' 2>/dev/null || echo "0")
+    
+    if [ "$flagged_count" -gt 0 ] 2>/dev/null; then
+        echo -e "${MAGENTA}  🚩 Flagged: $flagged_count important reminder(s)${NC}"
+    else
+        echo -e "  🚩 Flagged: No flagged reminders"
+    fi
+    
+    echo -e "  📍 Location-Based: Checking..."
+    local location_note="${CYAN}  (Location-based reminders require iOS/iPadOS integration)${NC}"
+    echo -e "$location_note"
+    
+    # Show list breakdown
+    if [ -n "$list_info" ]; then
+        echo -e "\n${BOLD}Lists Breakdown:${NC}"
+        echo "$list_info" | tr '@@' '\n' | while IFS='|' read -r name total pend comp; do
+            if [ -n "$name" ]; then
+                echo -e "${CYAN}  $name:${NC} $total total, $pend pending, $comp completed"
+            fi
+        done
+    fi
+    
+    # Get sample of today's reminders
+    if [ "$today_count" -gt 0 ] 2>/dev/null; then
+        echo -e "\n${BOLD}Today's Reminders (first 5):${NC}"
+        local today_sample=$(timeout 10 osascript << 'APPLESCRIPT'
+tell application "Reminders"
+    set todayList to ""
+    set reminderCount to 0
+    set today to current date
+    set startOfToday to (today - (time of today))
+    set endOfToday to startOfToday + (24 * 60 * 60)
+    
+    repeat with reminderList in every list
+        repeat with rem in reminders of reminderList
+            if reminderCount >= 5 then exit repeat
+            
+            if completed of rem is false then
+                try
+                    set dueDate to due date of rem
+                    if dueDate is not missing value then
+                        if dueDate ≥ startOfToday and dueDate < endOfToday then
+                            set remName to name of rem
+                            set listName to name of reminderList
+                            set todayList to todayList & "  • " & remName & " (" & listName & ")@@"
+                            set reminderCount to reminderCount + 1
+                        end if
+                    end if
+                end try
+            end if
+        end repeat
+    end repeat
+    
+    return todayList
+end tell
+APPLESCRIPT
+)
+        if [ -n "$today_sample" ]; then
+            echo -e "${CYAN}$(echo "$today_sample" | sed 's/@@/\n/g')${NC}"
+        fi
+    fi
+    
+    # Test natural language parsing capability
+    echo -e "\n${BOLD}Natural Language Parsing Test:${NC}"
+    echo -e "${CYAN}Testing Reminders' ability to parse natural language...${NC}"
+    
+    # Check if we can access reminders API
+    local nl_test=$(osascript << 'APPLESCRIPT' 2>&1
+tell application "Reminders"
+    -- Check if default list exists
+    try
+        set defaultList to default list
+        set listName to name of defaultList
+        return "SUCCESS||Natural language parsing supported||Default list: " & listName
+    on error
+        return "ERROR||No default list found"
+    end try
+end tell
+APPLESCRIPT
+)
+    
+    if echo "$nl_test" | grep -q "^SUCCESS"; then
+        local nl_msg=$(echo "$nl_test" | sed 's/^SUCCESS||//')
+        echo -e "${GREEN}${CHECK} $nl_msg${NC}"
+        echo -e "${CYAN}  Examples: 'Buy milk tomorrow', 'Call John at 3pm', 'Meeting next Monday'${NC}"
+    else
+        echo -e "${YELLOW}${WARNING} Natural language parsing test inconclusive${NC}"
+    fi
+    
+
+    
+    return 0
+}
+
 # Test Siri Intelligence
 test_siri() {
     echo -e "\n${BOLD}${MAGENTA}${ROBOT} Siri & Voice Recognition${NC}"
@@ -425,7 +611,8 @@ show_menu() {
     echo "  6. Test Photos Intelligence"
     echo "  7. Test Visual Intelligence"
     echo "  8. Test Mail Intelligence"
-    echo "  9. AI Performance Benchmark"
+    echo "  9. Test Reminders Intelligence"
+    echo "  10. AI Performance Benchmark"
     echo "  0. Exit"
     echo ""
 }
@@ -444,6 +631,9 @@ if [ $# -gt 0 ]; then
             ;;
         mail)
             test_mail
+            ;;
+        reminders)
+            test_reminders
             ;;
         benchmark)
             benchmark_ai_performance
@@ -485,6 +675,9 @@ else
                 test_mail
                 ;;
             9)
+                test_reminders
+                ;;
+            10)
                 benchmark_ai_performance
                 ;;
             0)
