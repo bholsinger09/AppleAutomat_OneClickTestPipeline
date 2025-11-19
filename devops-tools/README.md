@@ -100,7 +100,54 @@ Perform git operations across multiple repositories:
 ./git-batch.sh ~/Projects
 ```
 
-### 6. **Master Menu** (`devops-menu.sh`)
+### 6. **Performance Monitor** (`performance-monitor.sh`)
+Track build performance and generate analytics:
+- ⏱️ Real-time CPU/Memory monitoring during builds
+- 📊 Build time tracking with historical data
+- 🔥 Identify slow compilation units (>100ms)
+- 📈 Generate performance reports and trends
+- 📁 JSON metrics storage for analysis
+
+**Features:**
+- Monitor xcodebuild processes in real-time
+- Track average and peak CPU/memory usage
+- Analyze build logs for slow files
+- Compare build times across projects
+- Export performance data as JSON
+- Generate human-readable reports
+
+**Usage:**
+```bash
+# Monitor a build
+./performance-monitor.sh build /path/to/Project.xcodeproj MyScheme Debug
+
+# Generate performance report
+./performance-monitor.sh report
+
+# Interactive mode
+./performance-monitor.sh
+```
+
+**Sample Output:**
+```
+Build Results
+═══════════════════════════════════════════════════════════════
+✓ Build Status: SUCCESS
+⏱ Duration: 127s (02:07)
+
+Performance Metrics:
+Metric               Average       Peak
+──────────────────── ────────── ──────────
+CPU Usage              245.3%     387.1%
+Memory Usage            12.4%      18.9%
+
+Slow Compilation Units (>100ms):
+  🔥 523.2ms
+  🔥 412.8ms
+  🔥 307.1ms
+```
+
+### 7. **Master Menu** (`devops-menu.sh`)
 Central hub with ASCII art menu:
 - 🎨 Beautiful terminal UI
 - 📋 Quick access to all tools

@@ -41,7 +41,8 @@ echo -e "  ${BOLD}2.${NC} ${GREEN}Auto Update${NC}          - Update all develop
 echo -e "  ${BOLD}3.${NC} ${YELLOW}System Cleanup${NC}        - Clean caches & free disk space"
 echo -e "  ${BOLD}4.${NC} ${MAGENTA}Xcode Quick Actions${NC}   - Batch build, test, clean Xcode projects"
 echo -e "  ${BOLD}5.${NC} ${CYAN}Git Batch Ops${NC}         - Perform git operations on multiple repos"
-echo -e "  ${BOLD}6.${NC} ${GREEN}Run Pipeline${NC}          - Execute AppleAutomat build pipeline"
+echo -e "  ${BOLD}6.${NC} ${BLUE}Performance Monitor${NC}   - Track build performance & generate reports"
+echo -e "  ${BOLD}7.${NC} ${GREEN}Run Pipeline${NC}          - Execute AppleAutomat build pipeline"
 echo ""
 echo -e "  ${BOLD}0.${NC} Exit"
 echo ""
@@ -85,6 +86,12 @@ case $choice in
         "$SCRIPT_DIR/git-batch.sh"
         ;;
     6)
+        echo ""
+        echo -e "${BLUE}Running Performance Monitor...${NC}"
+        echo ""
+        "$SCRIPT_DIR/performance-monitor.sh"
+        ;;
+    7)
         echo ""
         echo -e "${GREEN}Running AppleAutomat Pipeline...${NC}"
         echo ""
