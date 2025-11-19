@@ -111,7 +111,7 @@ case $choice in
         echo -e "${GREEN}Running AppleAutomat Pipeline...${NC}"
         echo ""
         cd "$SCRIPT_DIR/.."
-        ./one_click_pipeline.sh"
+        ./one_click_pipeline.sh
         ;;
     0)
         echo -e "${GREEN}Goodbye!${NC}"
