@@ -23,7 +23,7 @@ if [ ! -d "/Applications/UTM.app" ]; then
     echo "Choose installation method:"
     echo "  1) Homebrew (free)"
     echo "  2) Download from website (free)"
-    echo "  3) Mac App Store ($9.99 - supports developers)"
+    echo "  3) Mac App Store (\$9.99 - supports developers)"
     echo ""
     read -p "Enter choice [1-3]: " choice
     
