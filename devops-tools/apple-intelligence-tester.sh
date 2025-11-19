@@ -90,6 +90,93 @@ test_spotlight() {
     done
 }
 
+# Test Mail Intelligence
+test_mail() {
+    echo -e "\n${BOLD}${MAGENTA}📧 Mail Intelligence${NC}"
+    
+    # Check if Mail is running
+    if ! pgrep -x "Mail" >/dev/null; then
+        echo -e "${YELLOW}${WARNING} Mail app is not running - launching...${NC}"
+        open -a Mail
+        sleep 3
+    else
+        echo -e "${GREEN}${CHECK} Mail app is running${NC}"
+    fi
+    
+    echo -e "\n${BOLD}Checking Mail Inbox:${NC}"
+    
+    # Create a temporary AppleScript file
+    local temp_script="/tmp/mail_check_$$.scpt"
+    cat > "$temp_script" << 'APPLESCRIPT'
+tell application "Mail"
+    set accountCount to count of accounts
+    set totalUnread to 0
+    set totalMessages to 0
+    set accountDetails to ""
+    
+    repeat with acc in accounts
+        set accountName to name of acc
+        try
+            set inboxMailbox to mailbox "INBOX" of acc
+            set unreadCount to unread count of inboxMailbox
+            set messageCount to count of messages of inboxMailbox
+            
+            set totalUnread to totalUnread + unreadCount
+            set totalMessages to totalMessages + messageCount
+            
+            set accountDetails to accountDetails & accountName & "|" & (messageCount as string) & "|" & (unreadCount as string) & "@@"
+        on error
+            -- Skip accounts that can't be accessed
+        end try
+    end repeat
+    
+    return (accountCount as string) & "||" & (totalMessages as string) & "||" & (totalUnread as string) & "||" & accountDetails
+end tell
+APPLESCRIPT
+    
+    # Run the script with timeout
+    local mail_result=$(timeout 10 osascript "$temp_script" 2>&1)
+    local exit_code=$?
+    rm -f "$temp_script"
+    
+    if [ $exit_code -eq 124 ]; then
+        echo -e "${RED}${CROSS} Timeout while accessing Mail${NC}"
+        echo -e "${YELLOW}${WARNING} Mail may be syncing or has too many messages${NC}"
+        return 1
+    elif [ $exit_code -ne 0 ]; then
+        echo -e "${RED}${CROSS} Error accessing Mail${NC}"
+        echo -e "${YELLOW}${WARNING} Make sure Mail is configured with at least one account${NC}"
+        return 1
+    fi
+    
+    # Parse results (format: count||total||unread||account_details)
+    local account_count=$(echo "$mail_result" | sed 's/||.*//')
+    local total_msgs=$(echo "$mail_result" | sed 's/^[^|]*||//; s/||.*//')
+    local unread_msgs=$(echo "$mail_result" | sed 's/^[^|]*||[^|]*||//; s/||.*//')
+    local account_info=$(echo "$mail_result" | sed 's/^[^|]*||[^|]*||[^|]*||//')
+    
+    echo -e "${GREEN}${CHECK} Mail accounts found: $account_count${NC}"
+    echo -e "${CYAN}Total messages in inbox: $total_msgs${NC}"
+    
+    if [ "$unread_msgs" -gt 0 ] 2>/dev/null; then
+        echo -e "${YELLOW}${SPARKLE} NEW MESSAGES: You have $unread_msgs unread message(s)!${NC}"
+    else
+        echo -e "${GREEN}${CHECK} No new messages - inbox is clear${NC}"
+    fi
+    
+    # Show account breakdown
+    if [ -n "$account_info" ]; then
+        echo -e "\n${BOLD}Account Breakdown:${NC}"
+        echo "$account_info" | tr '@@' '\n' | while IFS='|' read -r name msgs unread; do
+            if [ -n "$name" ]; then
+                echo -e "${CYAN}  $name:${NC} $msgs messages, $unread unread"
+            fi
+        done
+    fi
+    
+    return 0
+}
+
 # Test Siri Intelligence
 test_siri() {
     echo -e "\n${BOLD}${MAGENTA}${ROBOT} Siri & Voice Recognition${NC}"
@@ -337,7 +424,8 @@ show_menu() {
     echo "  5. Test Text Intelligence"
     echo "  6. Test Photos Intelligence"
     echo "  7. Test Visual Intelligence"
-    echo "  8. AI Performance Benchmark"
+    echo "  8. Test Mail Intelligence"
+    echo "  9. AI Performance Benchmark"
     echo "  0. Exit"
     echo ""
 }
@@ -353,6 +441,9 @@ if [ $# -gt 0 ]; then
             ;;
         siri)
             test_siri
+            ;;
+        mail)
+            test_mail
             ;;
         benchmark)
             benchmark_ai_performance
@@ -391,6 +482,9 @@ else
                 test_visual_intelligence
                 ;;
             8)
+                test_mail
+                ;;
+            9)
                 benchmark_ai_performance
                 ;;
             0)
