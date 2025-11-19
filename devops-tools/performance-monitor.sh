@@ -69,7 +69,7 @@ monitor_process() {
     local cpu_samples=()
     local mem_samples=()
     
-    echo "Monitoring PID: $pid (sampling every ${interval}s)" | tee -a "$MONITOR_LOG"
+    echo "Monitoring PID: $pid (sampling every ${interval}s)" >> "$MONITOR_LOG"
     
     while kill -0 $pid 2>/dev/null; do
         local cpu=$(ps -p $pid -o %cpu= 2>/dev/null | awk '{print $1}')
@@ -86,10 +86,17 @@ monitor_process() {
     done
     
     # Calculate averages
-    local avg_cpu=$(printf '%s\n' "${cpu_samples[@]}" | awk '{sum+=$1} END {print sum/NR}')
-    local avg_mem=$(printf '%s\n' "${mem_samples[@]}" | awk '{sum+=$1} END {print sum/NR}')
-    local max_cpu=$(printf '%s\n' "${cpu_samples[@]}" | sort -rn | head -1)
-    local max_mem=$(printf '%s\n' "${mem_samples[@]}" | sort -rn | head -1)
+    if [ ${#cpu_samples[@]} -gt 0 ]; then
+        local avg_cpu=$(printf '%s\n' "${cpu_samples[@]}" | awk '{sum+=$1} END {if(NR>0) print sum/NR; else print 0}')
+        local avg_mem=$(printf '%s\n' "${mem_samples[@]}" | awk '{sum+=$1} END {if(NR>0) print sum/NR; else print 0}')
+        local max_cpu=$(printf '%s\n' "${cpu_samples[@]}" | sort -rn | head -1)
+        local max_mem=$(printf '%s\n' "${mem_samples[@]}" | sort -rn | head -1)
+    else
+        local avg_cpu=0
+        local avg_mem=0
+        local max_cpu=0
+        local max_mem=0
+    fi
     
     echo "$avg_cpu|$max_cpu|$avg_mem|$max_mem"
 }
