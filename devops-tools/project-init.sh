@@ -98,12 +98,13 @@ cat > README.md << EOF
 # $project_name
 
 ## Description
-TODO: Add project description
+A $(echo "$project_type" | sed 's/-/ /g') project built with Xcode and integrated with AppleAutomat DevOps automation.
 
 ## Requirements
 - Xcode 16.0+
-- iOS 16.0+ / macOS 15.0+
+- iOS 16.0+ / macOS 15.0+ (depending on target platform)
 - Swift 5.0+
+- AppleAutomat DevOps Tools (optional, for automation)
 
 ## Setup
 \`\`\`bash
@@ -114,19 +115,56 @@ open $project_name.xcodeproj
 
 ## Building
 \`\`\`bash
+# Debug build
 xcodebuild -project $project_name.xcodeproj -scheme $project_name -configuration Debug
+
+# Release build
+xcodebuild -project $project_name.xcodeproj -scheme $project_name -configuration Release
 \`\`\`
 
 ## Testing
 \`\`\`bash
+# Run all tests
 xcodebuild test -project $project_name.xcodeproj -scheme $project_name
+
+# Run specific test
+xcodebuild test -project $project_name.xcodeproj -scheme $project_name -only-testing:$project_name/TestClassName
 \`\`\`
 
 ## CI/CD
 This project uses AppleAutomat pipeline for automated builds and testing.
 
+### Quick Start with DevOps Tools
+\`\`\`bash
+# Use Xcode Quick Actions
+./devops-tools/xcode-quick-actions.sh -a all -p $project_name.xcodeproj -s $project_name
+
+# Or run the full pipeline
+./one_click_pipeline.sh --platform $([ "$project_type" = "ios-app" ] && echo "ios" || echo "macos") --scheme $project_name
+\`\`\`
+
 ## License
-TODO: Add license
+MIT License
+
+Copyright (c) $(date +%Y) [Your Name]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 EOF
 
 echo -e "${GREEN}✓ README.md created${NC}"

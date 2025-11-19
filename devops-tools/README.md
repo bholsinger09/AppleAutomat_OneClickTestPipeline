@@ -147,7 +147,117 @@ Slow Compilation Units (>100ms):
   🔥 307.1ms
 ```
 
-### 7. **Master Menu** (`devops-menu.sh`)
+### 7. **Mac System Monitor** (`mac-system-monitor.sh`)
+Comprehensive macOS system health monitoring:
+- 💻 CPU usage and core information (Apple Silicon optimized)
+- 🧠 Memory statistics with pressure analysis
+- 💾 Disk space and I/O activity tracking
+- 🌐 Network interfaces and connection monitoring
+- 🔋 Battery health and cycle count (for MacBooks)
+- 🌡️ System temperature monitoring
+- 📊 Generate detailed system reports
+- ⏱️ Real-time continuous monitoring
+
+**Features:**
+- Apple M-series chip detection and optimization
+- Memory pressure analysis (normal/warning/critical)
+- Multi-volume disk monitoring
+- Network bandwidth and connection stats
+- Battery health with cycle count tracking
+- Save reports to timestamped files
+
+**Usage:**
+```bash
+# Quick system check
+./mac-system-monitor.sh quick
+
+# Generate detailed report
+./mac-system-monitor.sh report
+
+# Continuous monitoring (refresh every 3 seconds)
+./mac-system-monitor.sh monitor 3
+
+# Interactive mode
+./mac-system-monitor.sh
+```
+
+**Sample Output:**
+```
+💻 CPU Information
+Model: Apple M4 Max
+Physical Cores: 16, Logical Cores: 16
+Current Usage: 241.4%
+
+🧠 Memory Information
+Total: 64.0 GB, Used: 31.4 GB
+Memory Pressure: 9% (Normal)
+
+💾 Disk Information
+Total: 926Gi, Used: 11Gi (2%)
+Available: 690Gi
+```
+
+### 8. **Apple Intelligence Tester** (`apple-intelligence-tester.sh`)
+Test and monitor Apple's built-in AI capabilities:
+- 🔍 Spotlight Intelligence - Natural language search testing
+- 🤖 Siri & Voice Recognition status
+- 🧠 Core ML and Vision framework detection
+- ✍️ Text Intelligence (auto-correct, predictive text)
+- 📸 Photos Intelligence (face/scene recognition)
+- 👁️ Visual Intelligence (Live Text, Visual Look Up)
+- 🌐 Translation capabilities
+- 📧 Mail Intelligence - Check inbox for new messages
+- ✅ Reminders Intelligence - Pending tasks and smart lists
+- ⚡ AI Performance benchmarking
+
+**Features:**
+- Comprehensive AI capabilities report
+- Individual feature testing
+- Natural language query examples
+- Performance metrics for AI operations
+- Mail inbox checking with account breakdown
+- Reminders smart lists (Today, Scheduled, Flagged)
+
+**Usage:**
+```bash
+# Full AI capabilities report
+./apple-intelligence-tester.sh report
+
+# Test specific features
+./apple-intelligence-tester.sh spotlight
+./apple-intelligence-tester.sh mail
+./apple-intelligence-tester.sh reminders
+
+# Performance benchmark
+./apple-intelligence-tester.sh benchmark
+
+# Interactive mode
+./apple-intelligence-tester.sh
+```
+
+**Sample Output:**
+```
+📧 Mail Intelligence
+✓ Mail accounts found: 2
+Total messages in inbox: 5,439
+✨ NEW MESSAGES: You have 109 unread message(s)!
+
+Account Breakdown:
+  iCloud: 960 messages, 11 unread
+  Google: 4,479 messages, 98 unread
+
+✅ Reminders Intelligence
+✓ Reminder lists found: 3
+Total reminders: 23
+✨ PENDING: You have 6 pending reminder(s)!
+
+Smart Lists:
+  📅 Today: No reminders due today
+  🗓️  Scheduled: 1 reminder(s) with due dates
+  🚩 Flagged: No flagged reminders
+```
+
+### 9. **Master Menu** (`devops-menu.sh`)
 Central hub with ASCII art menu:
 - 🎨 Beautiful terminal UI
 - 📋 Quick access to all tools
